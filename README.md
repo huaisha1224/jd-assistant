@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![star, issue](https://img.shields.io/badge/star%2C%20issue-welcome-brightgreen.svg)](https://github.com/huaisha1224/jd-assistant)
 
-京东抢购助手源代码Fork自https://github.com/tychxn/jd-assistant
+京东抢购助手源代码Fork自[tychxn](https://github.com/tychxn/jd-assistant)
 -由于原作者已不再更新、刚好我又有需要、所以在此基础上进行了修改；
 
 ## 主要功能
@@ -51,7 +51,7 @@ pip install -r requirements.txt
 
 程序主入口在 `main.py`
 
-👉 [使用教程请参看Wiki](https://github.com/huaisha1224/jd-assistant/wiki/%E4%BA%AC%E4%B8%9C%E6%8A%A2%E8%B4%AD%E5%8A%A9%E6%89%8B)
+👉 [使用教程请参看Wiki](https://github.com/huaisha1224/jd-assistant/wiki/JD%E6%8A%A2%E8%B4%AD%E5%8A%A9%E6%89%8B)
 
 
 ## 更新记录
