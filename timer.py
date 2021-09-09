@@ -1,52 +1,23 @@
 # -*- coding:utf-8 -*-
 import time
-import requests
-import json
-
 from datetime import datetime
+
 from log import logger
-from config import global_config
 
 
 class Timer(object):
-    def __init__(self, sleep_interval=0.5):
+
+    def __init__(self, buy_time, sleep_interval=0.5):
+
         # '2018-09-28 22:45:50.000'
-        buy_time_everyday = global_config.getRaw('config', 'buy_time').__str__()
-        localtime = time.localtime(time.time())
-        self.buy_time = datetime.strptime(
-            localtime.tm_year.__str__() + '-' + localtime.tm_mon.__str__() + '-' + localtime.tm_mday.__str__()
-            + ' ' + buy_time_everyday,
-            "%Y-%m-%d %H:%M:%S.%f")
-        self.buy_time_ms = int(time.mktime(self.buy_time.timetuple()) * 1000.0 + self.buy_time.microsecond / 1000)
+        self.buy_time = datetime.strptime(buy_time, "%Y-%m-%d %H:%M:%S.%f")
         self.sleep_interval = sleep_interval
-        self.diff_time = self.local_jd_time_diff()
-
-    def jd_time(self):
-        """
-        从京东服务器获取时间毫秒
-        """
-        url = 'https://api.m.jd.com/client.action?functionId=queryMaterialProducts&client=wh5'
-        ret = requests.get(url).text
-        js = json.loads(ret)
-        return int(js["currentTime2"])
-
-    def local_time(self):
-        """
-        获取本地时间毫秒
-        """
-        return int(round(time.time() * 1000))
-
-    def local_jd_time_diff(self):
-        """
-        计算本地与京东服务器时间差
-        """
-        return self.local_time() - self.jd_time()
 
     def start(self):
-        logger.info('正在等待到达设定时间:{}，检测本地时间与京东服务器时间误差为{}毫秒'.format(self.buy_time, self.diff_time))
+        logger.info('正在等待到达设定时间:%s' % self.buy_time)
+        now_time = datetime.now
         while True:
-            # 本地时间减去与京东的时间差，能够将时间误差提升到0.1秒附近
-            if self.local_time() - self.diff_time >= self.buy_time_ms:
+            if now_time() >= self.buy_time:
                 logger.info('时间到达，开始执行……')
                 break
             else:
