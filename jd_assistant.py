@@ -16,6 +16,7 @@ from log import logger
 from messenger import Messenger
 from timer import Timer
 import shimo
+import excel
 from util import (
     DEFAULT_TIMEOUT,
     DEFAULT_USER_AGENT,
@@ -1466,8 +1467,8 @@ class Assistant(object):
 
                 # 获取订单时间、订单ID
                 tr_th = table_body.select('tr.tr-th')[0]
-                order_time = get_tag_value(tr_th.select('span.dealtime'))
-                order_id = get_tag_value(tr_th.select('span.number a'))
+                order_time = get_tag_value(tr_th.select('span.dealtime'))   #订单时间
+                order_id = get_tag_value(tr_th.select('span.number a'))     #订单ID
                 #print("start")
                 # 本地服务订单接口查询查询消费验证码
                 vercode_url = "http://locdetails.jd.com/pc/locdetail?orderId={}&modelId=2".format(order_id)
@@ -1489,7 +1490,7 @@ class Assistant(object):
                         logger.error('获取订单验证码页信息失败')
                         return
                     vercode_soup = BeautifulSoup(resp.text, "html.parser")
-
+                    # print(vercode_soup)
                     order_type = vercode_soup.select('h2')  #判断异常
 
                     #通过本地服务订单接口查询订单时非本地服务器订单会提示"您的账号与订单信息不匹配或非loc订单，请重新跳转"
@@ -1502,26 +1503,32 @@ class Assistant(object):
                     else:
                         order_vercode_str = vercode_soup.select('td.tr-vercode.un-use') #定位验证码位置
                         order_vercode_status = vercode_soup.select('td.un-use')         #消费状态
-
+                        order_money  = vercode_soup.select('span.f-price')[1]       #订单金额信息
+                        # print("原价：", order_money[0])   #原价
+                        # print("实付：", order_money[1])   #实付
+                        amount = re.findall(r'\d+\.?\d*', str(order_money)) #获取具体金额
+                        # print(amount)
                         order_vercode = re.findall(r'\d{12}', str(order_vercode_str))[0]  #订单验证码
 
                         if re.findall(r'未消费', str(order_vercode_status)):    #判断消费状态
                             vercode_status = re.findall(r'未消费', str(order_vercode_status))[0]
                             if vercode_status:
                                 submit = shimo.shimo(order_vercode)  #调用石墨文档模块提交数据
-                                #print(order_vercode)
-                                order_info_format = '下单时间: {0}---订单号: {1}---验证码: {2} ---消费状态: {3}---提交状态: {4}'
-                                logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_status, submit))
+                                order_info_format = '下单时间:{0}--订单号:{1}--验证码:{2}--消费状态:{3}--提交状态:{4}--金额：{5}'
+                                logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_status, submit, amount[0]))
+                                # order_info_format = '下单时间:{0}--订单号:{1}--验证码:{2}--消费状态:{3}--金额:{4}'
+                                # logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_status,amount[0]))
+                                excel.save_to_csv(order_time, order_id, order_vercode, amount)  #写入excel表
 
                         else:
                             # 获取验证码消费时间
                             vercode_usetime = re.findall(r"(\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2}:\d{1,2} 已消费)", str(vercode_soup))
-                            order_info_format = '下单时间: {0}---订单号: {1}---验证码: {2}----消费状态: {3}'
-                            logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_usetime[0]))
-             
+                            order_info_format = '下单时间:{0}--订单号:{1}--验证码:{2}--消费状态:{3}--金额:{4}'
+                            logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_usetime[0], amount[0]))
+
                 except Exception as e:
                     logger.error(e)
-
+            os.system('pause')  #手动退出提示
             if not exist_order:
                 logger.info('订单查询为空')
         except Exception as e:
