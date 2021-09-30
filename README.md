@@ -80,4 +80,4 @@ pip install -r requirements.txt
 - ✖️ 多账号抢购
 
 ## 感谢
-[借鉴skyiea314的时间同步代码](https://github.com/skyiea314/jd_maotai_seckill)
+~~[借鉴skyiea314的时间同步代码](https://github.com/skyiea314/jd_maotai_seckill)~~
