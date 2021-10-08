@@ -1428,6 +1428,9 @@ class Assistant(object):
         :
         :vercode_url: 本地生活服务订单接口
         """
+        # 获取指定页码的订单数据、使用下面2行代码、并注释掉url即可
+        # number = input("请输入你要提取的订单页码>>>>:")
+        # url = 'https://order.jd.com/center/list.action?d=1&s=4096&page={}'.format(number)
         url = 'https://order.jd.com/center/list.action'
         payload = {
             'search': 0,
