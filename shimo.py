@@ -29,7 +29,7 @@ def shimo(content):
 
    url = "https://shimo.im/api/newforms/forms/xpVxJQJjT3GJ8WhJ/submit"
 
-   data['duration'] = random.randint(10,50) #生成随机时间
+   data['duration'] = random.randint(20,40) #生成随机时间
    data['responseContent'][0]['text']['content'] = content
    data['userName'] = "JD助手"
    # print("Duration: ", data['duration'])
