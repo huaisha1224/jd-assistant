@@ -693,7 +693,11 @@ class Assistant(object):
         :return: 购物车商品信息 dict
         """
         url = 'https://cart.jd.com/cart.action'
-        resp = self.sess.get(url)
+        headers = {
+            'User-Agent': self.user_agent,
+            'Referer': 'https://cart.jd.com'
+        }
+        resp = self.sess.get(url, headers=headers)
         soup = BeautifulSoup(resp.text, "html.parser")
 
         cart_detail = dict()
