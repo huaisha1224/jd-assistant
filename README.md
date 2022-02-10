@@ -55,7 +55,7 @@ pip install -r requirements.txt
 
 
 ## 更新记录
-- 【2022.01.17】优化excel模块
+- 【2022.01.18】优化excel模块、使用CSV模块替换Pandas、减少打包exe后的包大小
 - 【2021.09.10】get_order_vercode模块增加输出内容到csv文件
 - 【2021.09.08】优化时间模块、同步JD时间提高成功率
 - 【2021.09.06】优化代码、提高性能
