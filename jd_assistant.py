@@ -1432,9 +1432,6 @@ class Assistant(object):
         :
         :vercode_url: 本地生活服务订单接口
         """
-        # 获取指定页码的订单数据、使用下面2行代码、并注释掉url即可
-        # number = input("请输入你要提取的订单页码>>>>:")
-        # url = 'https://order.jd.com/center/list.action?d=1&s=4096&page={}'.format(number)
         url = 'https://order.jd.com/center/list.action'
         payload = {
             'search': 0,
@@ -1474,8 +1471,16 @@ class Assistant(object):
 
                 # 获取订单时间、订单ID
                 tr_th = table_body.select('tr.tr-th')[0]
+                # print('店铺名称：',tr_th)
+                if re.search(r'venderName10510423', str(tr_th)):    # 判断店铺名称
+                    # print('店铺名称：动网体育服务旗舰店')
+                    order_shop = '动网体育服务旗舰店'
+                else:
+                    order_shop = '不用管的店铺'
+
                 order_time = get_tag_value(tr_th.select('span.dealtime'))   #订单时间
                 order_id = get_tag_value(tr_th.select('span.number a'))     #订单ID
+     
                 #print("start")
                 # 本地服务订单接口查询查询消费验证码
                 vercode_url = "http://locdetails.jd.com/pc/locdetail?orderId={}&modelId=2".format(order_id)
@@ -1520,12 +1525,13 @@ class Assistant(object):
                         if re.findall(r'未消费', str(order_vercode_status)):    #判断消费状态
                             vercode_status = re.findall(r'未消费', str(order_vercode_status))[0]
                             if vercode_status:
-                                submit = shimo.shimo(order_vercode)  #调用石墨文档模块提交数据
-                                order_info_format = '下单时间:{0}--订单号:{1}--验证码:{2}--消费状态:{3}--提交状态:{4}--金额：{5}'
-                                logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_status, submit, amount[0]))
-                                # order_info_format = '下单时间:{0}--订单号:{1}--验证码:{2}--消费状态:{3}--金额:{4}'
-                                # logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_status,amount[0]))
-                                excel.save_to_csv(order_time, order_id, order_vercode, amount)  #写入excel表
+                                if order_shop == '动网体育服务旗舰店':
+                                    submit = shimo.shimo(order_vercode)  #调用石墨文档模块提交数据
+                                    order_info_format = '下单时间:{0}--订单号:{1}--验证码:{2}--消费状态:{3}--提交状态:{4}--金额：{5}'
+                                    logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_status, submit, amount[0]))
+                                    # order_info_format = '下单时间:{0}--订单号:{1}--验证码:{2}--消费状态:{3}--金额:{4}'
+                                    # logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_status,amount[0]))
+                                    excel.save_to_csv(order_time, order_id, order_vercode, amount)  #写入excel表
 
                         else:
                             # 获取验证码消费时间
