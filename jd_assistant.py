@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from cgitb import small
 import json
 import os
 import pickle
 import re
 import random
 import time
+from turtle import width
+import qrcode_terminal
+
+from qrdecode import *
 
 import requests
 from bs4 import BeautifulSoup
@@ -36,6 +41,8 @@ from util import (
     split_area_id
 )
 
+import urllib3
+urllib3.disable_warnings()
 
 class Assistant(object):
 
@@ -153,7 +160,7 @@ class Assistant(object):
 
     def _get_login_page(self):
         url = "https://passport.jd.com/new/login.aspx"
-        page = self.sess.get(url, headers=self.headers)
+        page = self.sess.get(url, headers=self.headers, verify=False)
         return page
 
     @deprecated
@@ -225,7 +232,27 @@ class Assistant(object):
         self.is_login = True
         return True
 
-    @deprecated
+    
+
+    # """ 读取二维码的内容： img_adds：二维码地址（可以是网址也可是本地地址 """
+        if os.path.isfile(img_adds):
+            # 从本地加载二维码图片
+            img = Image.open(img_adds)
+        else:
+            # 从网络下载并加载二维码图片
+            rq_img = requests.get(img_adds).content
+            img = Image.open(BytesIO(rq_img))
+
+        # img.show()  # 显示图片，测试用
+
+        txt_list = pyzbar.decode(img)       
+
+        for txt in txt_list:
+            barcodeData = txt.data.decode("utf-8")
+            print(barcodeData)
+            return barcodeData
+            
+    @deprecated            
     def _get_login_result(self, resp):
         resp_json = parse_json(resp.text)
         error_msg = ''
@@ -263,7 +290,7 @@ class Assistant(object):
             'Referer': 'https://passport.jd.com/new/login.aspx',
         }
         resp = self.sess.get(url=url, headers=headers, params=payload)
-
+        
         if not response_status(resp):
             logger.info('获取二维码失败')
             return False
@@ -272,6 +299,12 @@ class Assistant(object):
         save_image(resp, QRCode_file)
         logger.info('二维码获取成功，请打开京东APP扫描')
         open_image(QRCode_file)
+          
+        txt_list = decode(QRCode_file)       
+            
+       
+        qrcode_terminal.draw(txt_list,{ small: True })
+        
         return True
 
     def _get_QRcode_ticket(self):
@@ -417,7 +450,7 @@ class Assistant(object):
         :return: 响应
         """
         url = 'https://item.jd.com/{}.html'.format(sku_id)
-        page = requests.get(url=url, headers=self.headers)
+        page = requests.get(url=url, headers=self.headers,verify=False)
         return page
 
     def get_single_item_stock(self, sku_id, num, area):
@@ -1559,3 +1592,6 @@ class Assistant(object):
                 #print(entry.name)
                 os.remove(cookies_path + '\\' + entry.name)
                 os.system('pause')
+
+
+                 
