@@ -3,3 +3,4 @@ requests>=2.20.0
 pycryptodome==3.6.6
 pandas==1.3.2
 openpyxl==3.0.7
+qrcode_terminal>=0.8
