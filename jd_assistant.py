@@ -17,6 +17,7 @@ from messenger import Messenger
 from timer import Timer
 import shimo
 import excel
+import db
 from util import (
     DEFAULT_TIMEOUT,
     DEFAULT_USER_AGENT,
@@ -693,11 +694,7 @@ class Assistant(object):
         :return: 购物车商品信息 dict
         """
         url = 'https://cart.jd.com/cart.action'
-        headers = {
-            'User-Agent': self.user_agent,
-            'Referer': 'https://cart.jd.com'
-        }
-        resp = self.sess.get(url, headers=headers)
+        resp = self.sess.get(url)
         soup = BeautifulSoup(resp.text, "html.parser")
 
         cart_detail = dict()
@@ -1432,123 +1429,143 @@ class Assistant(object):
         :
         :vercode_url: 本地生活服务订单接口
         """
-        url = 'https://order.jd.com/center/list.action'
-        payload = {
-            'search': 0,
-            'd': 1,
-            's': 4096,
-        }  # Orders for nearly three months
-        headers = {
-            'User-Agent': self.user_agent,
-            'Referer': 'https://passport.jd.com/uc/login?ltype=logout',
-        }
-
+        # url = 'https://order.jd.com/center/list.action'
         try:
-            resp = self.sess.get(url=url, params=payload, headers=headers)
-            if not response_status(resp):
-                logger.error('获取订单页信息失败')
-                return
-            soup = BeautifulSoup(resp.text, "html.parser")
-            #print(soup)
+            number = input("请输入你要提取的订单页码或者页码范围 >>>>:  ")  # 用户输入页码、或者页码范围
+            pagenumber = re.split(r'[-,]',number)   #用re.split切割多种匹配
+        except:
+            pass
+            print("只能输入1，或者1-5 这种格式")
+        # 用列表的第一个数字作为range的起始数字、最后一个数值作为结束数字
+        for i in range(int(pagenumber[0]),int(pagenumber[-1])+1): 
+            url = 'https://order.jd.com/center/list.action?d=1&s=4096&page={}'.format(str(i))
+            print('开始提取第 {} 页'.format(str(i)), url)
+            payload = {
+                'search': 0,
+                'd': 1,
+                's': 4096,
+            }  # Orders for nearly three months
+            headers = {
+                'User-Agent': self.user_agent,
+                'Referer': 'https://passport.jd.com/uc/login?ltype=logout',
+            }
 
-            #logger.info('************************订单列表页查询************************')
-            order_table = soup.find('table', {'class': 'order-tb'})
-            # 判断一下订单获取是否成功
-            if order_table == None:
-                logger.info('订单信息获取失败、请删除cookies文件夹后重新尝试')
-                #print("订单信息获取失败、请删除cookies文件夹后重新尝试")
-            table_bodies = order_table.select('tbody')
-            exist_order = False
-            for table_body in table_bodies:
-                # get order status
-                order_status = get_tag_value(table_body.select('span.order-status')).replace("订单状态：", "")
-                wait_payment = "等待付款" in order_status
-
-                # only show unpaid orders if unpaid=True
-                if unpaid_new and (not wait_payment):
-                    continue
-                exist_order = True
-
-                # 获取订单时间、订单ID
-                tr_th = table_body.select('tr.tr-th')[0]
-                # print('店铺名称：',tr_th)
-                if re.search(r'venderName10510423', str(tr_th)):    # 判断店铺名称
-                    # print('店铺名称：动网体育服务旗舰店')
-                    order_shop = '动网体育服务旗舰店'
-                else:
-                    order_shop = '不用管的店铺'
-
-                order_time = get_tag_value(tr_th.select('span.dealtime'))   #订单时间
-                order_id = get_tag_value(tr_th.select('span.number a'))     #订单ID
-     
-                #print("start")
-                # 本地服务订单接口查询查询消费验证码
-                vercode_url = "http://locdetails.jd.com/pc/locdetail?orderId={}&modelId=2".format(order_id)
-                #vercode_url_back = "http://locdetails.jd.com/pc/locdetail?orderId={}&modelId=1".format(order_id)
-                #vercode_url= "https://locdetails.jd.com/pc/locdetail?orderId=217734548778&modelId=2"
-                payload = {
-                    'search': 0,
-                    'd': 1,
-                    's': 4096,
-                    }  # Orders for nearly three months
-                headers = {
-                        'User-Agent': self.user_agent,
-                        'Referer': 'https://passport.jd.com/uc/login?ltype=logout',
-                    }
-
+            try:
+                resp = self.sess.get(url=url, params=payload, headers=headers)
+                if not response_status(resp):
+                    logger.error('获取订单页信息失败')
+                    return
+                soup = BeautifulSoup(resp.text, "html.parser")
+                #print(soup)
+                
+                # 获取JD用户名
                 try:
-                    resp = self.sess.get(url=vercode_url, params=payload, headers=headers)
-                    if not response_status(resp):
-                        logger.error('获取订单验证码页信息失败')
-                        return
-                    vercode_soup = BeautifulSoup(resp.text, "html.parser")
-                    # print(vercode_soup)
-                    order_type = vercode_soup.select('h2')  #判断异常
+                    username = re.search(r"currpin']='(.*)';", resp.text).group(1)
+                except:
+                    username = 'None'
+                #logger.info('************************订单列表页查询************************')
+                order_table = soup.find('table', {'class': 'order-tb'})
+                # 判断一下订单获取是否成功
+                if order_table == None:
+                    logger.info('订单信息获取失败、请删除cookies文件夹后重新尝试')
+                    #print("订单信息获取失败、请删除cookies文件夹后重新尝试")
+                table_bodies = order_table.select('tbody')
+                exist_order = False
+                for table_body in table_bodies:
+                    # get order status
+                    order_status = get_tag_value(table_body.select('span.order-status')).replace("订单状态：", "")
+                    wait_payment = "等待付款" in order_status
 
-                    #通过本地服务订单接口查询订单时非本地服务器订单会提示"您的账号与订单信息不匹配或非loc订单，请重新跳转"
-
-                    if re.search(r'您的账号', str(order_type)): #判断订单是否为本地服务类型订单
-                            order_info_format = '下单时间: {0}---订单号: {1}----{2}'
-                            logger.info(order_info_format.format(order_time, order_id, "非本地生活服务订单"))
+                    # only show unpaid orders if unpaid=True
+                    if unpaid_new and (not wait_payment):
+                        continue
+                    exist_order = True
                     
-                    #没有关键词说明是本地服务订单类型
+                    try:
+
+                        # 商品名称
+                        tr_bd = table_body.select('tr.tr-bd')[0]   
+                        p_name = get_tag_value(tr_bd.select('div.p-name a'))
+                        # print(p_name)
+                    except:
+                        pass
+                        # print('获取产品名称出错')
+                    
+                    # 获取订单时间、订单ID
+                    tr_th = table_body.select('tr.tr-th')[0]
+                    # print('店铺名称：',tr_th)
+                    if re.search(r'venderName10510423', str(tr_th)):    # 判断店铺名称
+                        order_shop = 'venderName10510423'
                     else:
-                        order_vercode_str = vercode_soup.select('td.tr-vercode.un-use') #定位验证码位置
-                        order_vercode_status = vercode_soup.select('td.un-use')         #消费状态
-                        order_money  = vercode_soup.select('span.f-price')[1]       #订单金额信息
-                        # print("原价：", order_money[0])   #原价
-                        # print("实付：", order_money[1])   #实付
-                        amount = re.findall(r'\d+\.?\d*', str(order_money)) #获取具体金额
-                        # print(amount)
-                        order_vercode = re.findall(r'\d{12}', str(order_vercode_str))[0]  #订单验证码
+                        order_shop = 'None'
 
-                        if re.findall(r'未消费', str(order_vercode_status)):    #判断消费状态
-                            vercode_status = re.findall(r'未消费', str(order_vercode_status))[0]
-                            if vercode_status:
-                                if order_shop == '动网体育服务旗舰店':
-                                    submit = shimo.shimo(order_vercode)  #调用石墨文档模块提交数据
-                                    order_info_format = '下单时间:{0}--订单号:{1}--验证码:{2}--消费状态:{3}--提交状态:{4}--金额：{5}'
-                                    logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_status, submit, amount[0]))
-                                    # order_info_format = '下单时间:{0}--订单号:{1}--验证码:{2}--消费状态:{3}--金额:{4}'
-                                    # logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_status,amount[0]))
-                                    excel.save_to_csv(order_time, order_id, order_vercode, amount)  #写入excel表
+                    order_time = get_tag_value(tr_th.select('span.dealtime'))   #订单时间
+                    order_id = get_tag_value(tr_th.select('span.number a'))     #订单ID
+                    #print("start")
+                    # 本地服务订单接口查询查询消费验证码
+                    vercode_url = "http://locdetails.jd.com/pc/locdetail?orderId={}&modelId=2".format(order_id)
+                    payload = {
+                        'search': 0,
+                        'd': 1,
+                        's': 4096,
+                        }  # Orders for nearly three months
+                    headers = {
+                            'User-Agent': self.user_agent,
+                            'Referer': 'https://passport.jd.com/uc/login?ltype=logout',
+                        }
 
+                    try:
+                        resp = self.sess.get(url=vercode_url, params=payload, headers=headers)
+                        if not response_status(resp):
+                            logger.error('获取订单验证码页信息失败')
+                            return
+                        vercode_soup = BeautifulSoup(resp.text, "html.parser")
+                        # print(vercode_soup)
+                        order_type = vercode_soup.select('h2')  #判断异常
+
+                        #通过本地服务订单接口查询订单时非本地服务器订单会提示"您的账号与订单信息不匹配或非loc订单，请重新跳转"
+
+                        if re.search(r'您的账号', str(order_type)): #判断订单是否为本地服务类型订单
+                                order_info_format = '下单时间: {0}---订单号: {1}----{2}'
+                                logger.info(order_info_format.format(order_time, order_id, "非本地生活服务订单"))
+                        
+                        #没有关键词说明是本地服务订单类型
                         else:
-                            # 获取验证码消费时间
-                            vercode_usetime = re.findall(r"(\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2}:\d{1,2} 已消费)", str(vercode_soup))
-                            order_info_format = '下单时间:{0}--订单号:{1}--验证码:{2}--消费状态:{3}--金额:{4}'
-                            logger.info(order_info_format.format(order_time, order_id, order_vercode, vercode_usetime[0], amount[0]))
+                            order_vercode_str = vercode_soup.select('td.tr-vercode.un-use') #定位验证码位置
+                            order_vercode_status = vercode_soup.select('td.un-use')         #消费状态
+                            order_money  = vercode_soup.select('span.f-price')[1]       #订单金额信息
+                            # print("原价：", order_money[0])   #原价
+                            # print("实付：", order_money[1])   #实付
+                            amount = re.findall(r'\d+\.?\d*', str(order_money)) #获取具体金额
+                            # print(amount)
+                            order_vercode = re.findall(r'\d{12}', str(order_vercode_str))[0]  #订单验证码
 
-                except Exception as e:
-                    logger.error(e)
-            os.system('pause')  #手动退出提示
-            if not exist_order:
-                logger.info('订单查询为空')
-        except Exception as e:
-            #print('报错啦')
-            self.clean_cookies()
-            logger.error(e)
-            logger.info('已删除cookies、请重新运行程序')
+                            if re.findall(r'未消费', str(order_vercode_status)):    #判断消费状态
+                                vercode_status = re.findall(r'未消费', str(order_vercode_status))[0]
+                                if vercode_status:
+                                    if order_shop == 'venderName10510423':
+                                        submit = shimo.shimo(order_vercode,username,p_name,amount[0])  #调用石墨文档模块提交数据
+                                        order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--提交状态:{5}--金额：{6}'
+                                        logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_status, submit, amount[0]))
+                                        excel.save_to_csv(order_time, order_id, order_vercode, amount)  #写入excel表
+                                        db.save_db(str(order_id), str(order_vercode), str(amount[0]), str(username), str(order_time)) # 写入本地sqlite
+
+                            else:
+                                # 获取验证码消费时间
+                                vercode_usetime = re.findall(r"(\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2}:\d{1,2} 已消费)", str(vercode_soup))
+                                order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--金额:{5}'
+                                logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_usetime[0], amount[0]))
+
+                    except Exception as e:
+                        logger.error(e)
+                # os.system('pause')  #手动退出提示
+                if not exist_order:
+                    logger.info('订单查询为空')
+            except Exception as e:
+                #print('报错啦')
+                self.clean_cookies()
+                logger.error(e)
+                logger.info('已删除cookies、请重新运行程序')
         
     def clean_cookies(self):
         """清理cookies文件
