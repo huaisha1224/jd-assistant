@@ -1544,11 +1544,16 @@ class Assistant(object):
                                 vercode_status = re.findall(r'未消费', str(order_vercode_status))[0]
                                 if vercode_status:
                                     if order_shop == 'venderName10510423':
-                                        submit = shimo.shimo(order_vercode,username,p_name,amount[0])  #调用石墨文档模块提交数据
-                                        order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--提交状态:{5}--金额：{6}'
-                                        logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_status, submit, amount[0]))
-                                        excel.save_to_csv(order_time, order_id, order_vercode, amount)  #写入excel表
-                                        db.save_db(str(order_id), str(order_vercode), str(amount[0]), str(username), str(order_time)) # 写入本地sqlite
+                                        res = db.query_db(str(order_id))
+                                        if res: # 判断提交状态
+                                            order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--提交状态:{5}--金额：{6}'
+                                            logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_status, '无需重复提交', amount[0]))
+                                        else:   # 数据库中不存在时提交数据
+                                            submit = shimo.shimo(order_vercode,username,p_name,amount[0])  # 调用石墨文档模块提交数据
+                                            order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--提交状态:{5}--金额：{6}'
+                                            logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_status, submit, amount[0]))
+                                            excel.save_to_csv(order_time, order_id, order_vercode, amount, p_name)  # 写入excel表
+                                            db.save_db(str(order_id), str(order_vercode), str(amount[0]), str(username), str(order_time)) # 写入本地sqlite
 
                             else:
                                 # 获取验证码消费时间

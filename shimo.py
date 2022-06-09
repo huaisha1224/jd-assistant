@@ -39,7 +39,8 @@ def shimo(content, username,pname,amount):
    "userFinger" : "-1",
    "userName" : "xxxx"
 }
-   url = "https://shimo.im/api/newforms/forms/R13j82B45dh4bvk5/submit" 
+   url = "https://shimo.im/api/newforms/forms/R13j82B45dh4bvk5/submit" #真实地址  GT11OwKe/xAjdyg6y/JcTnexA2
+   #url = "https://shimo.im/api/newforms/forms/pdGc9jGYtdxyTydt/submit"  #测试地址  xrmD2uAq/LE4te1MF
 
    data['duration'] = random.randint(10,50)
    data['responseContent'][0]['text']['content'] = content
