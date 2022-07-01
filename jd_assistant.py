@@ -1531,35 +1531,38 @@ class Assistant(object):
                         
                         #没有关键词说明是本地服务订单类型
                         else:
-                            order_vercode_str = vercode_soup.select('td.tr-vercode.un-use') #定位验证码位置
-                            order_vercode_status = vercode_soup.select('td.un-use')         #消费状态
-                            order_money  = vercode_soup.select('span.f-price')[1]       #订单金额信息
-                            # print("原价：", order_money[0])   #原价
-                            # print("实付：", order_money[1])   #实付
-                            amount = re.findall(r'\d+\.?\d*', str(order_money)) #获取具体金额
-                            # print(amount)
-                            order_vercode = re.findall(r'\d{12}', str(order_vercode_str))[0]  #订单验证码
+                            if order_shop == 'venderName10510423':  # 判断店铺名称
+                                order_vercode_str = vercode_soup.select('td.tr-vercode.un-use') #定位验证码位置
+                                order_vercode_status = vercode_soup.select('td.un-use')         #消费状态
+                                order_money  = vercode_soup.select('span.f-price')[1]       #订单金额信息
+                                # print("原价：", order_money[0])   #原价
+                                # print("实付：", order_money[1])   #实付
+                                amount = re.findall(r'\d+\.?\d*', str(order_money)) #获取具体金额
+                                # print(amount)
+                                order_vercode = re.findall(r'\d{12}', str(order_vercode_str))[0]  #订单验证码
 
-                            if re.findall(r'未消费', str(order_vercode_status)):    #判断消费状态
-                                vercode_status = re.findall(r'未消费', str(order_vercode_status))[0]
-                                if vercode_status:
-                                    if order_shop == 'venderName10510423':
-                                        res = db.query_db(str(order_id))
-                                        if res: # 判断提交状态
-                                            order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--提交状态:{5}--金额：{6}'
-                                            logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_status, '无需重复提交', amount[0]))
-                                        else:   # 数据库中不存在时提交数据
-                                            submit = shimo.shimo(order_vercode,username,p_name,amount[0])  # 调用石墨文档模块提交数据
-                                            order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--提交状态:{5}--金额：{6}'
-                                            logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_status, submit, amount[0]))
-                                            excel.save_to_csv(order_time, order_id, order_vercode, amount, p_name)  # 写入excel表
-                                            db.save_db(str(order_id), str(order_vercode), str(amount[0]), str(username), str(order_time)) # 写入本地sqlite
+                                if re.findall(r'未消费', str(order_vercode_status)):    #判断消费状态
+                                    vercode_status = re.findall(r'未消费', str(order_vercode_status))[0]
+                                    if vercode_status:
+                                            res = db.query_db(str(order_id))
+                                            if res: # 判断提交状态
+                                                order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--提交状态:{5}--金额：{6}'
+                                                logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_status, '无需重复提交', amount[0]))
+                                            else:   # 数据库中不存在时提交数据
+                                                submit = shimo.shimo(order_vercode,username,p_name,amount[0])  # 调用石墨文档模块提交数据
+                                                order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--提交状态:{5}--金额：{6}'
+                                                logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_status, submit, amount[0]))
+                                                excel.save_to_csv(order_time, order_id, order_vercode, amount, p_name)  # 写入excel表
+                                                db.save_db(str(order_id), str(order_vercode), str(amount[0]), str(username), str(order_time)) # 写入本地sqlite
 
+                                else:
+                                    # 获取验证码消费时间
+                                    vercode_usetime = re.findall(r"(\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2}:\d{1,2} 已消费)", str(vercode_soup))
+                                    order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--金额:{5}'
+                                    logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_usetime[0], amount[0]))
+                                    excel.save_to_csv_use(order_time, order_id, order_vercode, amount, vercode_usetime[0], p_name)  # 写入excel表
                             else:
-                                # 获取验证码消费时间
-                                vercode_usetime = re.findall(r"(\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2}:\d{1,2} 已消费)", str(vercode_soup))
-                                order_info_format = '下单时间:{0}--订单号:{1}--产品名称:{2}--验证码:{3}--消费状态:{4}--金额:{5}'
-                                logger.info(order_info_format.format(order_time, order_id, p_name, order_vercode, vercode_usetime[0], amount[0]))
+                                pass
 
                     except Exception as e:
                         logger.error(e)
