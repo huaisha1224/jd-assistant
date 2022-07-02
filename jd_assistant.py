@@ -7,6 +7,9 @@ import re
 import random
 import time
 
+import qrcode_terminal
+from qrdecode import *
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -226,7 +229,10 @@ class Assistant(object):
         self.is_login = True
         return True
 
-    @deprecated
+    
+  
+            
+    @deprecated            
     def _get_login_result(self, resp):
         resp_json = parse_json(resp.text)
         error_msg = ''
@@ -264,7 +270,7 @@ class Assistant(object):
             'Referer': 'https://passport.jd.com/new/login.aspx',
         }
         resp = self.sess.get(url=url, headers=headers, params=payload)
-
+        
         if not response_status(resp):
             logger.info('获取二维码失败')
             return False
@@ -273,6 +279,12 @@ class Assistant(object):
         save_image(resp, QRCode_file)
         logger.info('二维码获取成功，请打开京东APP扫描')
         open_image(QRCode_file)
+          
+        txt_list = decode(QRCode_file)       
+            
+       
+        qrcode_terminal.draw(txt_list,3)
+        
         return True
 
     def _get_QRcode_ticket(self):
@@ -418,7 +430,7 @@ class Assistant(object):
         :return: 响应
         """
         url = 'https://item.jd.com/{}.html'.format(sku_id)
-        page = requests.get(url=url, headers=self.headers)
+        page = requests.get(url=url, headers=self.headers,verify=False)
         return page
 
     def get_single_item_stock(self, sku_id, num, area):
@@ -1584,3 +1596,6 @@ class Assistant(object):
                 #print(entry.name)
                 os.remove(cookies_path + '\\' + entry.name)
                 os.system('pause')
+
+
+                 
